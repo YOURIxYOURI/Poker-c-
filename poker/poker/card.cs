@@ -10,11 +10,13 @@ namespace poker
     {
         public string symbol { get; set; }
         public string color { get; set; }
+        public int value { get; set; }
         
-        public card(string symbol, string color)
+        public card(string symbol, string color, int value)
         {
             this.symbol = symbol;
             this.color = color;
+            this.value = value;
         }
 
         public override string ToString()
