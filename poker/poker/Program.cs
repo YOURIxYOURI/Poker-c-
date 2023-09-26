@@ -1,21 +1,25 @@
 ﻿using poker;
 
-List<card> deck = new List<card>();
-Player player1 = new Player { name = "1"};
-Player player2 = new Player { name = "2"};
+deck deck = new();
+Player player1 = new Player { name = "1", whatInHand=""};
+Player player2 = new Player { name = "2", whatInHand=""};
 
 string[] tmp_symbol = {"9","10","J","Q","K","A"};
 string[] tmp_color = {"Trefl","Pik","karo","kier"};
 int[] tmp_value = {9,10,11,12,13,14};
-string whatWins1="";
-string whatWins2="";
 
-void drawCard(List<card> cards)
+void drawCard(Player p)
 {
     Random rand = new Random();
-    int index = rand.Next(deck.Count);
-    cards.Add(deck[index]);
-    deck.RemoveAt(index);
+    int index = rand.Next(deck.cards.Count);
+    p.cards.Add(deck.cards[index]);
+    deck.cards.RemoveAt(index);
+}
+void ShuffleDeck()
+{
+    Random rng = new Random();
+    var shuffledDeck = deck.cards.OrderBy(a => rng.Next()).ToList();
+    deck.cards = shuffledDeck;
 }
 void GameSet()
 {
@@ -23,20 +27,20 @@ void GameSet()
     {
         for (int i = 0; i < tmp_symbol.Length;i++)
         {
-            deck.Add(new(tmp_symbol[i], tmp_c, tmp_value[i]));
+            deck.cards.Add(new(tmp_symbol[i], tmp_c, tmp_value[i]));
         }
     };
     for (int i = 1; i< 11; i++)
     {
         Random rand = new Random();
-        int index = rand.Next(deck.Count);
+        int index = rand.Next(deck.cards.Count);
         if (i % 2 == 0)
         {
-            drawCard(player2.cards);
+            drawCard(player2);
         }
         else
         {
-            drawCard(player1.cards);
+            drawCard(player1);
         }
     }
 }
@@ -47,7 +51,7 @@ void displayHand(List<card> cards)
         cards[i].details();
     }
 }
-bool ChangeCards(List<card> cards)
+bool ChangeCards(Player p)
 {
     Console.WriteLine("Podaj karty(1-5) które chcesz wymienić odzielając je pojedyńczymi spacjami");
     string choosed = Console.ReadLine();
@@ -75,8 +79,8 @@ bool ChangeCards(List<card> cards)
     {
         int which = int.Parse(which_cards[i-1]);
 
-        cards.RemoveAt(which-1);
-        drawCard(cards);
+        p.cards.RemoveAt(which-1);
+        drawCard(p);
     }
     return false;
 }
@@ -103,16 +107,16 @@ bool checkOrder(List<card> cards)
     return isOrder;
 }
 
-int checkPair(List<card> cards)
+int checkPair(Player p)
 {
     int howManyPairs = 0;
     bool isFullPair = false;
     bool isFullThree = false;
     int points = 0;
-    foreach(card card in cards)
+    foreach(card card in p.cards)
     {
         int repeted = -1;
-        foreach( card c in cards)
+        foreach( card c in p.cards)
         {
             if(card.value == c.value)
             {
@@ -124,27 +128,39 @@ int checkPair(List<card> cards)
             howManyPairs++;
             isFullPair = true;
             points += 100 + card.value * 2;
+
         }
         if(repeted == 2)
         {
             isFullThree= true;
             points += 300 + card.value * 3;
+            p.whatInHand = "Three of kind";
         }
         if(repeted == 3)
         {
             points += 800 +card.value* 4;
+            p.whatInHand = "Four of kind";
         }
     }
     if(isFullThree && isFullPair)
     {
         points += 200;
+        p.whatInHand = "Full House";
+    }
+    if (howManyPairs == 4)
+    {
+        p.whatInHand = "Two Pair";
+    }
+    else if (howManyPairs == 2)
+    {
+        p.whatInHand = "One Pair";
     }
     return points;
 }
 
-int checkHand(List<card> cards)
+int checkHand(Player p)
 {
-    List<card> hand = cards.OrderBy(o => o.value).ToList();
+    List<card> hand = p.cards.OrderBy(o => o.value).ToList();
     int points = 0;
     if(checkColor(hand) && checkOrder(hand))
     {
@@ -153,12 +169,13 @@ int checkHand(List<card> cards)
             if(card.value == 14)
             {
                 points += 1100;
-                
+                p.whatInHand = "Royal flush";
                 return points;
             }
             else
             {
                 points += 1000;
+                p.whatInHand = " StraigthFlush";
                 return points;
             }
         }
@@ -166,6 +183,7 @@ int checkHand(List<card> cards)
     if (checkColor(hand))
     {
         points += 470;
+        p.whatInHand = "Flush";
         return points;
     }
     if (checkOrder(hand))
@@ -175,20 +193,23 @@ int checkHand(List<card> cards)
             if (card.value == 14)
             {
                 points += 452;
+                p.whatInHand = "straigth"; 
                 return points;
             }
             else
             {
                 points += 451;
+                p.whatInHand = "straigth";
                 return points;
             }
         }
     }
-    points = checkPair(hand);
+    points = checkPair(p);
     if(points != 0)
     {
         return points;
     }
+    p.whatInHand = "High card";
     return points = hand[4].value;
 }
 
@@ -201,7 +222,7 @@ void Game()
     bool changed = true;
     while (changed)
     {
-        changed = ChangeCards(player1.cards);
+        changed = ChangeCards(player1);
     }
     displayHand(player1.cards);
     Console.WriteLine("Jeśli zapoznałeś się z kartami wciśnij ENTER");
@@ -213,19 +234,19 @@ void Game()
     changed = true;
     while (changed)
     {
-        changed = ChangeCards(player2.cards);
+        changed = ChangeCards(player2);
     }
     displayHand(player2.cards);
     Console.WriteLine("Jeśli zapoznałeś się z kartami wciśnij ENTER");
     Console.ReadLine();
     Console.Clear();
-    if (checkHand(player1.cards) > checkHand(player2.cards))
+    if (checkHand(player1) > checkHand(player2))
     {
-        Console.WriteLine($"Wygrał gracz 1 z {whatWins1}");
+        Console.WriteLine($"Wygrał gracz 1 z {player1.whatInHand}");
     }
-    else if (checkHand(player1.cards) < checkHand(player2.cards))
+    else if (checkHand(player1) < checkHand(player2))
     {
-        Console.WriteLine($"Wygrał gracz 2 z {whatWins2}");
+        Console.WriteLine($"Wygrał gracz 2 z {player2.whatInHand}");
     }
     else
     {

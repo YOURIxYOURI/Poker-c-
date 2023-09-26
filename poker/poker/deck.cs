@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace poker
 {
-    internal class Player
+    internal class deck
     {
-        public string name { get; set; }
         public List<card> cards = new List<card>();
-        public string whatInHand { get; set; }
     }
 }
